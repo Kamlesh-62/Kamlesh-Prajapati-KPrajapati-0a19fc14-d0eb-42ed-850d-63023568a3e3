@@ -1,106 +1,197 @@
-# New Nx Repository
+# Secure Task Management System
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A secure task management system with role-based access control (RBAC) built in an Nx monorepo.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+**Stack**
+- Backend: NestJS + SQLite Cloud (`sqlitecloud.io`) via `@sqlitecloud/drivers`
+- Frontend: Angular + TailwindCSS
+- Shared libs: `libs/data`, `libs/auth`
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
-## Finish your Nx platform setup
-
-🚀 [Finish setting up your workspace](https://cloud.nx.app/connect/zaqi9AYmId) to get faster builds with remote caching, distributed task execution, and self-healing CI. [Learn more about Nx Cloud](https://nx.dev/ci/intro/why-nx-cloud).
-## Generate a library
-
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
-
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
+## Repository Structure
 
 ```
-npx nx release
+apps/
+  api/                NestJS backend (http://localhost:3000/api)
+  dashboard/          Angular frontend (http://localhost:4200)
+libs/
+  data/               Shared DTOs + types
+  auth/               RBAC logic (roles, permissions)
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+## Setup
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+1. Install dependencies
 
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
+```bash
+npm install
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+2. Configure environment
 
-```sh
-npx nx sync:check
+```bash
+cp apps/api/.env.example apps/api/.env
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+Set these values in `apps/api/.env`:
 
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Set up CI (non-Github Actions CI)
-
-**Note:** This is only required if your CI provider is not GitHub Actions.
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+```
+JWT_SECRET=your-secret-key
+SQLITECLOUD_URL=sqlitecloud://<host>:<port>/<db>?apikey=<key>
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+3. Run backend
 
-## Install Nx Console
+```bash
+npx nx serve api
+```
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+4. Run frontend
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+npx nx serve dashboard
+```
 
-## Useful links
+## Architecture Overview
 
-Learn more:
+- **NX monorepo** provides shared libraries and isolated apps.
+- **`libs/data`**: shared DTOs/types used by both backend and frontend.
+- **`libs/auth`**: RBAC helpers (role hierarchy, permissions, org access logic).
+- **Backend** uses SQLite Cloud with a lightweight repository layer and SQL schema bootstrap.
+- **Frontend** uses Angular standalone components + signals for local state.
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Data Model (ERD)
 
-And join the Nx community:
+```mermaid
+erDiagram
+  ORGANIZATIONS {
+    string id PK
+    string name
+    string parent_id
+    string created_at
+    string updated_at
+  }
+  USERS {
+    string id PK
+    string email
+    string password
+    string name
+    string role
+    string organization_id
+    string created_at
+    string updated_at
+  }
+  TASKS {
+    string id PK
+    string title
+    string description
+    string status
+    string category
+    int position
+    string assignee_id
+    string created_by_id
+    string organization_id
+    string created_at
+    string updated_at
+  }
+  AUDIT_LOGS {
+    string id PK
+    string action
+    string user_id
+    string resource_type
+    string resource_id
+    string details
+    string created_at
+  }
 
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+  ORGANIZATIONS ||--o{ USERS : has
+  ORGANIZATIONS ||--o{ TASKS : has
+  USERS ||--o{ TASKS : assigned
+  USERS ||--o{ TASKS : created
+  USERS ||--o{ AUDIT_LOGS : logs
+  ORGANIZATIONS ||--o{ ORGANIZATIONS : parent
+```
+
+## Access Control Implementation
+
+Roles follow inheritance: `Owner > Admin > Viewer`.
+
+Permissions:
+- **Owner**: create/read/update/delete tasks, view audit logs, manage users
+- **Admin**: create/read/update/delete tasks, view audit logs
+- **Viewer**: read tasks only
+
+Organization scoping:
+- **Viewer/Admin**: only their own organization.
+- **Owner**: their own organization + child orgs.
+
+This is enforced by:
+- `@Permissions()` decorator + `PermissionsGuard`
+- org scoping in `TasksService` using accessible org ids
+
+## API Documentation
+
+Base URL: `http://localhost:3000/api`
+
+### Auth
+- `POST /auth/login`
+
+```json
+{ "email": "owner@acme.com", "password": "password123" }
+```
+
+- `POST /auth/register`
+
+```json
+{ "email": "user@example.com", "password": "Test@1234", "name": "User", "organizationId": "<org-id>" }
+```
+
+### Tasks
+- `GET /tasks`
+- `POST /tasks`
+
+```json
+{ "title": "New task", "description": "details", "status": "todo", "category": "work" }
+```
+
+- `PUT /tasks/:id`
+
+```json
+{ "status": "in_progress" }
+```
+
+- `DELETE /tasks/:id`
+
+### Audit Logs
+- `GET /audit-log`
+
+## Frontend
+
+- Login page with JWT storage.
+- Register page with org id input.
+- Task dashboard with filters + drag-and-drop status changes.
+- Audit log view for Admin/Owner.
+- Light/Dark mode toggle.
+
+## Testing
+
+Tests are not fully wired due to Nx daemon/plugin issues in this environment. Unit tests should cover:
+- Auth and RBAC logic (backend)
+- Task CRUD and org scoping (backend)
+- Login and tasks UI/services (frontend)
+
+## Tradeoffs / Known Issues
+
+- Nx daemon/plugin errors may block running tests in this environment; run with `NX_DAEMON=false` if needed.
+- Viewer visibility is strictly scoped to their organization. If Owners create tasks in parent orgs, child-org viewers won't see them unless tasks are assigned into their org.
+- Registration UI requires manual `organizationId` entry.
+
+## Future Considerations
+
+- JWT refresh tokens
+- CSRF protection
+- RBAC caching
+- Pagination for tasks/audit logs
+- Role delegation + organization admin workflows
+- Production-grade auditing and retention policies
+# Kamlesh-Prajapati-KPrajapati-0a19fc14-d0eb-42ed-850d-63023568a3e3
+# Kamlesh-Prajapati-KPrajapati-0a19fc14-d0eb-42ed-850d-63023568a3e3
