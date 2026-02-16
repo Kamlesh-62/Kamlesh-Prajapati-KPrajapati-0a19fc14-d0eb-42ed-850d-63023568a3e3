@@ -16,5 +16,7 @@
   "nx": {
     "name": "auth"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@kprajapati/data": "*"
+  }
 }

@@ -1,0 +1,53 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex items-center justify-center px-6">
+  <div class="w-full max-w-md bg-white/90 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-2xl">
+    <h1 class="text-2xl font-semibold tracking-tight">Secure Tasks</h1>
+    <p class="text-slate-500 dark:text-slate-400 mt-2">Sign in to manage your tasks.</p>
+
+    <div class="mt-4 flex justify-end">
+      <button
+        type="button"
+        class="text-xs px-3 py-1 rounded-full border border-slate-300 dark:border-slate-700 hover:border-emerald-500"
+        (click)="theme.toggle()"
+      >
+        {{ theme.theme() === 'dark' ? 'Light' : 'Dark' }} mode
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 space-y-4">
+      <label class="block">
+        <span class="text-sm text-slate-600 dark:text-slate-300">Email</span>
+        <input
+          type="email"
+          formControlName="email"
+          class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        />
+      </label>
+
+      <label class="block">
+        <span class="text-sm text-slate-600 dark:text-slate-300">Password</span>
+        <input
+          type="password"
+          formControlName="password"
+          class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        />
+      </label>
+
+      <button
+        type="submit"
+        [disabled]="form.invalid || loading()"
+        class="w-full mt-4 rounded-lg bg-emerald-500 text-slate-900 font-semibold py-2 transition hover:bg-emerald-400 disabled:opacity-50"
+      >
+        Sign in
+      </button>
+      <p *ngIf="error()" class="text-xs text-red-400">{{ error() }}</p>
+    </form>
+
+    <div class="mt-6 text-xs text-slate-500 dark:text-slate-400">
+      Use seeded users: owner@acme.com, admin@acme.com, viewer@acme.com (password123)
+    </div>
+    <div class="mt-6 text-xs text-slate-500 dark:text-slate-400">
+      Need an account?
+      <a routerLink="/register" class="text-emerald-500 hover:text-emerald-400">Register</a>
+    </div>
+  </div>
+</div>

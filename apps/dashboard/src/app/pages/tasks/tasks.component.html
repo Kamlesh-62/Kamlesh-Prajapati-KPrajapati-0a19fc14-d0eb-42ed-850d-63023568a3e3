@@ -1,0 +1,468 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold">Task Command</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Secure Task Management</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a
+          routerLink="/audit-log"
+          class="text-sm text-slate-600 dark:text-slate-300 hover:text-emerald-500"
+          *ngIf="canEdit()"
+        >
+          Audit Log
+        </a>
+        <span class="text-xs text-slate-500 dark:text-slate-400">{{ user()?.name }} ({{ user()?.role }})</span>
+        <button
+          class="text-xs px-3 py-1 rounded-full border border-slate-300 dark:border-slate-700 hover:border-emerald-500"
+          (click)="theme.toggle()"
+        >
+          {{ theme.theme() === 'dark' ? 'Light' : 'Dark' }} mode
+        </button>
+        <button
+          class="text-xs px-3 py-1 rounded-full border border-slate-300 dark:border-slate-700 hover:border-emerald-500"
+          (click)="logout()"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-6 space-y-6">
+    <section class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          [value]="search()"
+          (input)="updateSearch(($any($event.target)).value)"
+          class="w-full md:w-64 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+        />
+        <select
+          class="rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+          (change)="filterStatus.set(($any($event.target)).value); onFilterChange()"
+        >
+          <option value="all">All status</option>
+          <option value="todo">Todo</option>
+          <option value="in_progress">In Progress</option>
+          <option value="overdue">Overdue</option>
+          <option value="done">Done</option>
+        </select>
+        <select
+          class="rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+          (change)="sortBy.set(($any($event.target)).value); onFilterChange()"
+        >
+          <option value="none">No sorting</option>
+          <option value="overdue_first">Overdue first</option>
+          <option value="due_soon">Due soon</option>
+        </select>
+        <select
+          class="rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+          (change)="filterCategory.set(($any($event.target)).value); onFilterChange()"
+        >
+          <option value="all">All categories</option>
+          <option value="work">Work</option>
+          <option value="personal">Personal</option>
+        </select>
+      </div>
+
+      <button
+        class="px-4 py-2 bg-emerald-500 text-slate-900 rounded-lg font-semibold text-sm"
+        (click)="openCreate()"
+        *ngIf="canEdit()"
+      >
+        New Task
+      </button>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div
+        class="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 min-h-[420px]"
+        (dragover)="allowDrop($event)"
+        (drop)="handleDrop($event, 'todo')"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">Todo</h2>
+          <span class="text-xs text-slate-400">{{ todoTotal() }}</span>
+        </div>
+        <div class="mt-4 space-y-3">
+          <ng-container *ngFor="let task of todoTasks()">
+            <div
+              *ngIf="task.status === 'todo'"
+              class="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 transition"
+              [draggable]="canEdit()"
+              (dragstart)="handleDragStart($event, task)"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-medium">{{ task.title }}</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ task.description }}</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <span class="text-[10px] uppercase tracking-wide text-emerald-500">{{ task.category }}</span>
+                    <span *ngIf="task.priority" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      {{ task.priority }}
+                    </span>
+                    <span *ngIf="task.dueDate" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      Due {{ task.dueDate }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  class="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500"
+                  (click)="openEdit(task)"
+                  *ngIf="canEdit()"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+        <!-- <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('todo', todoPage() - 1)"
+            [disabled]="todoPage() <= 1"
+          >
+            Prev
+          </button>
+          <span>Page {{ todoPage() }}</span>
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('todo', todoPage() + 1)"
+            [disabled]="todoPage() >= todoTotalPages()"
+          >
+            Next
+          </button>
+        </div> -->
+      </div>
+
+      <div
+        class="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 min-h-[420px]"
+        (dragover)="allowDrop($event)"
+        (drop)="handleDrop($event, 'overdue')"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm uppercase tracking-wide text-red-500">Overdue</h2>
+          <span class="text-xs text-slate-400">{{ overdueTotal() }}</span>
+        </div>
+        <div class="mt-4 space-y-3">
+          <ng-container *ngFor="let task of overdueTasks()">
+            <div
+              *ngIf="task.status === 'overdue'"
+              class="p-3 rounded-lg bg-white dark:bg-slate-950 border hover:border-emerald-500 transition"
+              [ngClass]="{
+                'border-red-400/70 bg-red-50/60 dark:bg-red-950/40': true,
+                'border-slate-200 dark:border-slate-800': false
+              }"
+              [draggable]="canEdit()"
+              (dragstart)="handleDragStart($event, task)"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-medium">{{ task.title }}</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ task.description }}</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <span class="text-[10px] uppercase tracking-wide text-emerald-500">{{ task.category }}</span>
+                    <span *ngIf="task.priority" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      {{ task.priority }}
+                    </span>
+                    <span *ngIf="task.dueDate" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      Due {{ task.dueDate }}
+                    </span>
+                    <span class="text-[10px] uppercase tracking-wide text-red-500">Overdue</span>
+                  </div>
+                </div>
+                <button
+                  class="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500"
+                  (click)="openEdit(task)"
+                  *ngIf="canEdit()"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+        <!-- <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('overdue', overduePage() - 1)"
+            [disabled]="overduePage() <= 1"
+          >
+            Prev
+          </button>
+          <span>Page {{ overduePage() }}</span>
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('overdue', overduePage() + 1)"
+            [disabled]="overduePage() >= overdueTotalPages()"
+          >
+            Next
+          </button>
+        </div> -->
+      </div>
+
+      <div
+        class="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 min-h-[420px]"
+        (dragover)="allowDrop($event)"
+        (drop)="handleDrop($event, 'in_progress')"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">In Progress</h2>
+          <span class="text-xs text-slate-400">{{ inProgressTotal() }}</span>
+        </div>
+        <div class="mt-4 space-y-3">
+          <ng-container *ngFor="let task of inProgressTasks()">
+            <div
+              *ngIf="task.status === 'in_progress'"
+              class="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 transition"
+              [draggable]="canEdit()"
+              (dragstart)="handleDragStart($event, task)"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-medium">{{ task.title }}</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ task.description }}</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <span class="text-[10px] uppercase tracking-wide text-emerald-500">{{ task.category }}</span>
+                    <span *ngIf="task.priority" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      {{ task.priority }}
+                    </span>
+                    <span *ngIf="task.dueDate" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      Due {{ task.dueDate }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  class="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500"
+                  (click)="openEdit(task)"
+                  *ngIf="canEdit()"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+        <!-- <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('in_progress', inProgressPage() - 1)"
+            [disabled]="inProgressPage() <= 1"
+          >
+            Prev
+          </button>
+          <span>Page {{ inProgressPage() }}</span>
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('in_progress', inProgressPage() + 1)"
+            [disabled]="inProgressPage() >= inProgressTotalPages()"
+          >
+            Next
+          </button>
+        </div> -->
+      </div>
+
+      <div
+        class="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 min-h-[420px]"
+        (dragover)="allowDrop($event)"
+        (drop)="handleDrop($event, 'done')"
+      >
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">Done</h2>
+          <span class="text-xs text-slate-400">{{ doneTotal() }}</span>
+        </div>
+        <div class="mt-4 space-y-3">
+          <ng-container *ngFor="let task of doneTasks()">
+            <div
+              *ngIf="task.status === 'done'"
+              class="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 transition"
+              [draggable]="canEdit()"
+              (dragstart)="handleDragStart($event, task)"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-medium">{{ task.title }}</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ task.description }}</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <span class="text-[10px] uppercase tracking-wide text-emerald-500">{{ task.category }}</span>
+                    <span *ngIf="task.priority" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      {{ task.priority }}
+                    </span>
+                    <span *ngIf="task.dueDate" class="text-[10px] uppercase tracking-wide text-slate-400">
+                      Due {{ task.dueDate }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  class="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500"
+                  (click)="openEdit(task)"
+                  *ngIf="canEdit()"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+        <!-- <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('done', donePage() - 1)"
+            [disabled]="donePage() <= 1"
+          >
+            Prev
+          </button>
+          <span>Page {{ donePage() }}</span>
+          <button
+            class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700"
+            (click)="goToColumnPage('done', donePage() + 1)"
+            [disabled]="donePage() >= doneTotalPages()"
+          >
+            Next
+          </button>
+        </div> -->
+      </div>
+    </section>
+
+    <!-- <section class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm text-slate-500 dark:text-slate-400">
+      <span>
+        Showing {{ todoTasks().length + inProgressTasks().length + overdueTasks().length + doneTasks().length }}
+        tasks (paged per column)
+      </span>
+    </section> -->
+  </main>
+
+  <div
+    class="fixed inset-0 bg-black/70 flex items-center justify-center"
+    *ngIf="showModal()"
+  >
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-lg p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">
+          {{ editingTask() ? 'Edit Task' : 'New Task' }}
+        </h2>
+        <button class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" (click)="closeModal()">✕</button>
+      </div>
+
+      <form [formGroup]="form" class="mt-4 space-y-4">
+        <label class="block">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Title</span>
+          <input
+            type="text"
+            formControlName="title"
+            class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+          />
+        </label>
+
+        <label class="block">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Description</span>
+          <textarea
+            formControlName="description"
+            rows="3"
+            class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+          ></textarea>
+        </label>
+
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs text-slate-500 dark:text-slate-400">Status</span>
+            <select
+              formControlName="status"
+              class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+            >
+              <option value="todo">Todo</option>
+              <option value="in_progress">In Progress</option>
+              <option value="overdue">Overdue</option>
+              <option value="done">Done</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-xs text-slate-500 dark:text-slate-400">Category</span>
+            <select
+              formControlName="category"
+              class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+            >
+              <option value="work">Work</option>
+              <option value="personal">Personal</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs text-slate-500 dark:text-slate-400">Priority</span>
+            <select
+              formControlName="priority"
+              class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-xs text-slate-500 dark:text-slate-400">Due date</span>
+            <input
+              type="date"
+              formControlName="dueDate"
+              class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+
+        <label class="block">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Assignee</span>
+          <input
+            type="text"
+            placeholder="Search users..."
+            [value]="assigneeSearch()"
+            (input)="updateAssigneeSearch(($any($event.target)).value)"
+            class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+          />
+          <select
+            formControlName="assigneeId"
+            class="mt-2 w-full rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 px-3 py-2 text-sm"
+            [disabled]="usersLoading()"
+          >
+            <option value="">Unassigned (defaults to you)</option>
+            <option *ngFor="let userItem of users()" [value]="userItem.id">
+              {{ userItem.name }} ({{ userItem.email }})
+            </option>
+          </select>
+          <p *ngIf="usersLoading()" class="text-xs text-slate-400 mt-2">Loading users...</p>
+          <p *ngIf="usersError()" class="text-xs text-red-400 mt-2">{{ usersError() }}</p>
+        </label>
+      </form>
+
+      <div class="mt-6 flex items-center justify-between">
+        <button
+          class="text-xs text-red-500 hover:text-red-400"
+          *ngIf="editingTask() && canEdit()"
+          (click)="remove(editingTask()!)"
+        >
+          Delete Task
+        </button>
+        <div class="ml-auto flex gap-2">
+          <button
+            class="px-4 py-2 text-sm rounded-lg border border-slate-700"
+            (click)="closeModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="px-4 py-2 text-sm rounded-lg bg-emerald-500 text-slate-900"
+            (click)="save()"
+            [disabled]="form.invalid"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

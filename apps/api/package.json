@@ -75,6 +75,12 @@
             "buildTarget": "api:build:production"
           }
         }
+      },
+      "test": {
+        "executor": "@nx/jest:jest",
+        "options": {
+          "jestConfig": "apps/api/jest.config.ts"
+        }
       }
     }
   },
