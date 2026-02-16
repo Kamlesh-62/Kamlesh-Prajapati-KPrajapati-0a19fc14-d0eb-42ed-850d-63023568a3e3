@@ -86,12 +86,26 @@ erDiagram
     string description
     string status
     string category
+    string priority
+    string due_date
     int position
     string assignee_id
     string created_by_id
     string organization_id
     string created_at
     string updated_at
+  }
+  IDEMPOTENCY_KEYS {
+    string id PK
+    string key
+    string method
+    string path
+    string user_id
+    string request_hash
+    int response_status
+    string response_body
+    string created_at
+    string expires_at
   }
   AUDIT_LOGS {
     string id PK
@@ -145,32 +159,64 @@ Base URL: `http://localhost:3000/api`
 { "email": "user@example.com", "password": "Test@1234", "name": "User", "organizationId": "<org-id>" }
 ```
 
+- `GET /auth/csrf` (fetch CSRF token cookie)
+
 ### Tasks
-- `GET /tasks`
+- `GET /tasks` (paged + filters)
 - `POST /tasks`
 
 ```json
-{ "title": "New task", "description": "details", "status": "todo", "category": "work" }
+{
+  "title": "New task",
+  "description": "details",
+  "status": "todo",
+  "category": "work",
+  "priority": "medium",
+  "dueDate": "2026-03-01",
+  "assigneeId": "<user-id>"
+}
 ```
 
 - `PUT /tasks/:id`
 
 ```json
-{ "status": "in_progress" }
+{ "status": "in_progress", "priority": "high", "dueDate": "2026-03-15" }
 ```
 
 - `DELETE /tasks/:id`
 
+Query params for `GET /tasks`:
+- `page`, `limit`
+- `status`, `category`, `assigneeId`, `priority`
+- `search` (title/description)
+- `sort` (`overdue_first` or `due_soon`)
+
 ### Audit Logs
 - `GET /audit-log`
+
+### Organizations
+- `GET /organizations`
+- `POST /organizations`
+
+### Users
+- `GET /users` (paged + search, org-scoped)
 
 ## Frontend
 
 - Login page with JWT storage.
-- Register page with org id input.
-- Task dashboard with filters + drag-and-drop status changes.
+- Register page with organization selector + link to create organization.
+- Create organization page (optional parent).
+- Task dashboard with filters, overdue column, per-column pagination, and drag-and-drop status changes.
+- Assignee picker with searchable user list.
 - Audit log view for Admin/Owner.
 - Light/Dark mode toggle.
+
+## Security
+
+- Helmet security headers.
+- CSRF protection via `csurf` and Angular XSRF config.
+- Rate limiting (`@nestjs/throttler`) with stricter limits on auth endpoints.
+- Idempotency for all `POST` endpoints via `Idempotency-Key` header (DB-backed, 24h TTL).
 
 ## Testing
 
@@ -183,14 +229,13 @@ Tests are not fully wired due to Nx daemon/plugin issues in this environment. Un
 
 - Nx daemon/plugin errors may block running tests in this environment; run with `NX_DAEMON=false` if needed.
 - Viewer visibility is strictly scoped to their organization. If Owners create tasks in parent orgs, child-org viewers won't see them unless tasks are assigned into their org.
-- Registration UI requires manual `organizationId` entry.
+- Overdue status updates happen on API access (list/create/update); there is no background scheduler.
 
 ## Future Considerations
 
 - JWT refresh tokens
-- CSRF protection
-- RBAC caching
-- Pagination for tasks/audit logs
+- Background jobs for overdue/notifications
+- Advanced audit log retention/exports
 - Role delegation + organization admin workflows
 - Production-grade auditing and retention policies
 # Kamlesh-Prajapati-KPrajapati-0a19fc14-d0eb-42ed-850d-63023568a3e3
