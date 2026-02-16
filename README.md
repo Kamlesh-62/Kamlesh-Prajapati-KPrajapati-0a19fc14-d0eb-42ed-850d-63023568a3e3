@@ -37,6 +37,7 @@ Set these values in `apps/api/.env`:
 ```
 JWT_SECRET=your-secret-key
 SQLITECLOUD_URL=sqlitecloud://<host>:<port>/<db>?apikey=<key>
+CORS_ORIGIN=http://localhost:4200
 ```
 
 3. Run backend

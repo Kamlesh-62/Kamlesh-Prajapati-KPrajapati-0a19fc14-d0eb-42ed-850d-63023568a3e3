@@ -17,13 +17,23 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })
   );
+  
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN?.split(',').map((value) => value.trim()) ?? [
+      'http://localhost:4200',
+    ],
+    credentials: true,
+  });
+
   app.use(
     helmet({
       contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
     })
   );
+
   app.use(cookieParser());
+
   app.use(
     csurf({
       cookie: {
@@ -34,6 +44,7 @@ async function bootstrap() {
       },
     })
   );
+
   app.use((req: Request, res: Response, next: NextFunction) => {
     const csrfToken =
       typeof (req as { csrfToken?: () => string }).csrfToken === 'function'

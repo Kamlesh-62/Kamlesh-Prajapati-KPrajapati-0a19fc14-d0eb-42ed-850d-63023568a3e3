@@ -232,11 +232,17 @@ export class TasksComponent implements OnDestroy {
     const current = this.editingTask();
     if (current) {
       this.tasksService.updateTask(current.id, payload).subscribe({
-        next: () => this.refreshTasks(this.page()),
+        next: () => this.refreshAllColumns(),
       });
     } else {
       this.tasksService.createTask(payload).subscribe({
-        next: () => this.refreshTasks(1),
+        next: () => {
+          this.todoPage.set(1);
+          this.inProgressPage.set(1);
+          this.overduePage.set(1);
+          this.donePage.set(1);
+          this.refreshAllColumns();
+        },
       });
     }
     this.showModal.set(false);
@@ -244,7 +250,7 @@ export class TasksComponent implements OnDestroy {
 
   remove(task: Task) {
     this.tasksService.deleteTask(task.id).subscribe({
-      next: () => this.refreshTasks(this.page()),
+      next: () => this.refreshAllColumns(),
     });
   }
 
@@ -262,10 +268,12 @@ export class TasksComponent implements OnDestroy {
     if (!this.canEdit()) return;
     const id = event.dataTransfer?.getData('text/plain');
     if (!id) return;
-    const task = this.tasks().find((t) => t.id === id);
+    const task = this.getAllTasks().find((t) => t.id === id);
     if (!task) return;
     if (task.status !== status) {
-      this.tasksService.updateTask(task.id, { status });
+      this.tasksService.updateTask(task.id, { status }).subscribe({
+        next: () => this.refreshAllColumns(),
+      });
     }
   }
 
@@ -291,5 +299,14 @@ export class TasksComponent implements OnDestroy {
     if (status === 'in_progress') this.refreshColumn('in_progress', page);
     if (status === 'overdue') this.refreshColumn('overdue', page);
     if (status === 'done') this.refreshColumn('done', page);
+  }
+
+  private getAllTasks() {
+    return [
+      ...this.todoTasks(),
+      ...this.inProgressTasks(),
+      ...this.overdueTasks(),
+      ...this.doneTasks(),
+    ];
   }
 }
